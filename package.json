@@ -1,0 +1,13 @@
+{
+  "name": "neon-space-shooter",
+  "version": "1.0.0",
+  "description": "A modern HTML5 Canvas space shooter game",
+  "main": "index.html",
+  "scripts": {
+    "test": "node tests/game.test.js",
+    "start": "python3 -m http.server 8080"
+  },
+  "keywords": ["game", "shooter", "canvas", "html5"],
+  "author": "HERO-1900",
+  "license": "MIT"
+}
