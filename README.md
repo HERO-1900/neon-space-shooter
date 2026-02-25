@@ -81,6 +81,11 @@ npm test
 
 MIT License
 
+## 🔗 链接
+
+- **GitHub Repository**: https://github.com/HERO-1900/neon-space-shooter
+- **Live Demo**: 打开 `index.html` 即可游玩
+
 ## 🎯 游戏截图
 
 *Coming soon...*
