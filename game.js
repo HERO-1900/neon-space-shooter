@@ -121,6 +121,7 @@ class Player {
 
     shoot() {
         bullets.push(new Bullet(this.x, this.y - 20, -10, 'player'));
+        audio.playShoot();
         // Dual shot at higher levels
         if (level >= 3) {
             bullets.push(new Bullet(this.x - 15, this.y - 10, -10, 'player'));
@@ -168,6 +169,7 @@ class Player {
             lives--;
             this.invulnerable = 120; // 2 seconds at 60fps
             createExplosion(this.x, this.y, '#00ff88', 20);
+            audio.playHit();
             updateUI();
             
             if (lives <= 0) {
@@ -260,6 +262,7 @@ class Enemy {
         if (this.hp <= 0) {
             score += this.score;
             createExplosion(this.x, this.y, this.color, 25);
+            audio.playExplosion(this.type === 'BOSS' ? 'large' : 'small');
             updateUI();
             return true;
         }
@@ -426,6 +429,7 @@ function checkCollisions() {
             }
             // Weapon upgrade is automatic with level
             powerups.splice(i, 1);
+            audio.playPowerUp();
             updateUI();
         }
     }
@@ -519,6 +523,8 @@ function updateUI() {
 
 // Game state functions
 function startGame() {
+    audio.init();
+    audio.startBGM();
     document.getElementById('start-screen').style.display = 'none';
     init();
     gameState = GAME_STATE.PLAYING;
@@ -526,14 +532,29 @@ function startGame() {
 
 function gameOver() {
     gameState = GAME_STATE.GAME_OVER;
+    audio.playGameOver();
     document.getElementById('final-score').textContent = score;
     document.getElementById('game-over').style.display = 'block';
 }
 
 function restartGame() {
     document.getElementById('game-over').style.display = 'none';
+    audio.startBGM();
     init();
     gameState = GAME_STATE.PLAYING;
+}
+
+// Audio toggle function
+function toggleAudio() {
+    const isEnabled = audio.toggle();
+    const btn = document.getElementById('mute-btn');
+    if (isEnabled) {
+        btn.textContent = '🔊 AUDIO ON';
+        btn.classList.remove('muted');
+    } else {
+        btn.textContent = '🔇 AUDIO OFF';
+        btn.classList.add('muted');
+    }
 }
 
 // Start the game loop

@@ -22,6 +22,42 @@ const mockCanvas = {
     })
 };
 
+// Mock Web Audio API
+global.AudioContext = class MockAudioContext {
+    constructor() {
+        this.state = 'running';
+        this.currentTime = 0;
+    }
+    createOscillator() {
+        return {
+            type: 'sine',
+            frequency: { value: 0, setValueAtTime: () => {}, exponentialRampToValueAtTime: () => {} },
+            connect: () => {},
+            start: () => {},
+            stop: () => {}
+        };
+    }
+    createGain() {
+        return {
+            gain: { value: 0, setValueAtTime: () => {}, linearRampToValueAtTime: () => {}, exponentialRampToValueAtTime: () => {} },
+            connect: () => {}
+        };
+    }
+    createBiquadFilter() {
+        return {
+            type: 'lowpass',
+            frequency: { value: 0, setValueAtTime: () => {}, exponentialRampToValueAtTime: () => {} },
+            connect: () => {}
+        };
+    }
+    resume() {
+        this.state = 'running';
+        return Promise.resolve();
+    }
+};
+
+global.webkitAudioContext = global.AudioContext;
+
 // Test utilities
 function assert(condition, message) {
     if (!condition) {
@@ -246,6 +282,81 @@ test('Player Invulnerability', () => {
     assert(hit() === true, 'Hit after invulnerability expires registers');
 });
 
+// Audio Manager tests
+test('Audio Manager System', () => {
+    // AudioManager class simulation
+    class AudioManager {
+        constructor() {
+            this.ctx = null;
+            this.enabled = true;
+            this.volume = 0.5;
+            this.isBGMPlaying = false;
+        }
+        
+        init() {
+            if (!this.ctx) {
+                this.ctx = new AudioContext();
+            }
+            if (this.ctx.state === 'suspended') {
+                this.ctx.resume();
+            }
+        }
+        
+        toggle() {
+            this.enabled = !this.enabled;
+            if (!this.enabled) {
+                this.stopBGM();
+            }
+            return this.enabled;
+        }
+        
+        setVolume(vol) {
+            this.volume = Math.max(0, Math.min(1, vol));
+        }
+        
+        stopBGM() {
+            this.isBGMPlaying = false;
+        }
+        
+        startBGM() {
+            if (!this.enabled || !this.ctx) return;
+            this.isBGMPlaying = true;
+        }
+    }
+    
+    const audio = new AudioManager();
+    
+    // Test initial state
+    assert(audio.enabled === true, 'Audio enabled by default');
+    assert(audio.volume === 0.5, 'Default volume is 0.5');
+    assert(audio.isBGMPlaying === false, 'BGM not playing initially');
+    
+    // Test toggle
+    const newState = audio.toggle();
+    assert(newState === false, 'Toggle disables audio');
+    assert(audio.enabled === false, 'Audio state updated after toggle');
+    
+    // Test volume bounds
+    audio.setVolume(1.5);
+    assert(audio.volume === 1, 'Volume clamped to max 1');
+    audio.setVolume(-0.5);
+    assert(audio.volume === 0, 'Volume clamped to min 0');
+    audio.setVolume(0.7);
+    assert(audio.volume === 0.7, 'Volume set correctly');
+    
+    // Test init
+    audio.init();
+    assert(audio.ctx !== null, 'AudioContext created after init');
+    
+    // Test BGM
+    audio.enabled = true;
+    audio.startBGM();
+    assert(audio.isBGMPlaying === true, 'BGM starts when enabled');
+    
+    audio.stopBGM();
+    assert(audio.isBGMPlaying === false, 'BGM stops correctly');
+});
+
 console.log('🎮 Running Neon Space Shooter Tests...\n');
 
 // Run all tests
@@ -258,7 +369,8 @@ const tests = [
     'Particle System',
     'Bullet Mechanics',
     'Power-up System',
-    'Player Invulnerability'
+    'Player Invulnerability',
+    'Audio Manager System'
 ];
 
 console.log(`Total test suites: ${tests.length}\n`);

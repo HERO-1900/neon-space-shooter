@@ -34,6 +34,30 @@
             font-size: 16px;
             text-shadow: 0 0 10px #00ff88;
         }
+        #ui div {
+            margin-bottom: 5px;
+        }
+        #mute-btn {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            background: rgba(0, 255, 136, 0.2);
+            border: 2px solid #00ff88;
+            color: #00ff88;
+            padding: 8px 15px;
+            cursor: pointer;
+            font-family: 'Courier New', monospace;
+            font-size: 14px;
+            transition: all 0.3s;
+        }
+        #mute-btn:hover {
+            background: rgba(0, 255, 136, 0.4);
+        }
+        #mute-btn.muted {
+            border-color: #ff3366;
+            color: #ff3366;
+            background: rgba(255, 51, 102, 0.2);
+        }
         #game-over {
             position: absolute;
             top: 50%;
@@ -98,6 +122,7 @@
             <div>LIVES: <span id="lives">3</span></div>
             <div>LEVEL: <span id="level">1</span></div>
         </div>
+        <button id="mute-btn" onclick="toggleAudio()">🔊 AUDIO ON</button>
         <div id="start-screen">
             <h1>NEON SPACE</h1>
             <p>Use ARROW KEYS to move • SPACE to shoot</p>
@@ -109,6 +134,7 @@
             <button onclick="restartGame()">PLAY AGAIN</button>
         </div>
     </div>
+    <script src="audio.js"></script>
     <script src="game.js"></script>
 </body>
 </html>
