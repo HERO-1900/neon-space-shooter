@@ -12,7 +12,8 @@ const GAME_STATE = {
     MENU: 'menu',
     PLAYING: 'playing',
     PAUSED: 'paused',
-    GAME_OVER: 'game_over'
+    GAME_OVER: 'game_over',
+    HIGH_SCORES: 'high_scores'
 };
 
 let gameState = GAME_STATE.MENU;
@@ -20,6 +21,76 @@ let score = 0;
 let lives = 3;
 let level = 1;
 let frames = 0;
+
+// High Score Manager
+class HighScoreManager {
+    constructor(maxEntries = 10) {
+        this.maxEntries = maxEntries;
+        this.scores = this.load();
+    }
+
+    load() {
+        try {
+            const data = localStorage.getItem('neonSpaceShooter_highScores');
+            return data ? JSON.parse(data) : [];
+        } catch (e) {
+            console.warn('Failed to load high scores:', e);
+            return [];
+        }
+    }
+
+    save() {
+        try {
+            localStorage.setItem('neonSpaceShooter_highScores', JSON.stringify(this.scores));
+        } catch (e) {
+            console.warn('Failed to save high scores:', e);
+        }
+    }
+
+    addScore(score, playerName = 'PLAYER', levelReached = 1) {
+        const entry = {
+            score: score,
+            name: playerName.toUpperCase().slice(0, 10),
+            date: new Date().toISOString().split('T')[0],
+            level: levelReached
+        };
+
+        this.scores.push(entry);
+        this.scores.sort((a, b) => b.score - a.score);
+        this.scores = this.scores.slice(0, this.maxEntries);
+        this.save();
+
+        return this.getRank(score);
+    }
+
+    getRank(score) {
+        return this.scores.findIndex(entry => entry.score === score) + 1;
+    }
+
+    isHighScore(score) {
+        if (this.scores.length < this.maxEntries) return true;
+        return score > this.scores[this.scores.length - 1].score;
+    }
+
+    getTopScores(count = 5) {
+        return this.scores.slice(0, count);
+    }
+
+    clear() {
+        this.scores = [];
+        try {
+            localStorage.removeItem('neonSpaceShooter_highScores');
+        } catch (e) {
+            console.warn('Failed to clear high scores:', e);
+        }
+    }
+
+    formatScore(score) {
+        return score.toString().padStart(7, '0');
+    }
+}
+
+const highScoreManager = new HighScoreManager();
 
 // Input handling
 const keys = {};
@@ -519,6 +590,11 @@ function updateUI() {
     document.getElementById('score').textContent = score;
     document.getElementById('lives').textContent = lives;
     document.getElementById('level').textContent = level;
+    
+    // Update high score display
+    const topScores = highScoreManager.getTopScores(1);
+    const highScore = topScores.length > 0 ? topScores[0].score : 0;
+    document.getElementById('high-score').textContent = highScoreManager.formatScore(highScore);
 }
 
 // Game state functions
@@ -533,12 +609,79 @@ function startGame() {
 function gameOver() {
     gameState = GAME_STATE.GAME_OVER;
     audio.playGameOver();
-    document.getElementById('final-score').textContent = score;
+    audio.stopBGM();
+    
+    // Check if high score
+    if (highScoreManager.isHighScore(score)) {
+        showHighScoreEntry();
+    } else {
+        document.getElementById('final-score').textContent = score;
+        document.getElementById('game-over').style.display = 'block';
+    }
+}
+
+function showHighScoreEntry() {
+    document.getElementById('high-score-entry').style.display = 'block';
+    document.getElementById('new-high-score').textContent = score;
+    document.getElementById('player-name-input').value = 'PLAYER';
+    document.getElementById('player-name-input').focus();
+    document.getElementById('player-name-input').select();
+}
+
+function submitHighScore() {
+    const nameInput = document.getElementById('player-name-input');
+    const playerName = nameInput.value.trim() || 'PLAYER';
+    const rank = highScoreManager.addScore(score, playerName, level);
+    
+    document.getElementById('high-score-entry').style.display = 'none';
+    showHighScores(rank);
+}
+
+function showHighScores(highlightRank = null) {
+    gameState = GAME_STATE.HIGH_SCORES;
+    const container = document.getElementById('high-scores');
+    const listEl = document.getElementById('high-scores-list');
+    
+    // Build high scores table
+    const topScores = highScoreManager.getTopScores(10);
+    let html = '';
+    
+    if (topScores.length === 0) {
+        html = '<div class="no-scores">No high scores yet. Be the first!</div>';
+    } else {
+        html = '<table class="high-scores-table">';
+        html += '<tr><th>RANK</th><th>SCORE</th><th>NAME</th><th>LVL</th><th>DATE</th></tr>';
+        
+        topScores.forEach((entry, index) => {
+            const rank = index + 1;
+            const isHighlighted = rank === highlightRank;
+            const rowClass = isHighlighted ? 'highlight' : '';
+            const rankEmoji = rank === 1 ? '🥇' : rank === 2 ? '🥈' : rank === 3 ? '🥉' : `#${rank}`;
+            
+            html += `<tr class="${rowClass}">`;
+            html += `<td class="rank">${rankEmoji}</td>`;
+            html += `<td class="score">${highScoreManager.formatScore(entry.score)}</td>`;
+            html += `<td class="name">${entry.name}</td>`;
+            html += `<td class="level">${entry.level}</td>`;
+            html += `<td class="date">${entry.date}</td>`;
+            html += '</tr>';
+        });
+        
+        html += '</table>';
+    }
+    
+    listEl.innerHTML = html;
+    container.style.display = 'block';
+}
+
+function hideHighScores() {
+    document.getElementById('high-scores').style.display = 'none';
     document.getElementById('game-over').style.display = 'block';
 }
 
 function restartGame() {
     document.getElementById('game-over').style.display = 'none';
+    document.getElementById('high-scores').style.display = 'none';
     audio.startBGM();
     init();
     gameState = GAME_STATE.PLAYING;
@@ -566,5 +709,15 @@ document.addEventListener('visibilitychange', () => {
         gameState = GAME_STATE.PAUSED;
     } else if (!document.hidden && gameState === GAME_STATE.PAUSED) {
         gameState = GAME_STATE.PLAYING;
+    }
+});
+
+// Handle Enter key for high score name input
+document.addEventListener('keydown', (e) => {
+    if (e.code === 'Enter' && document.getElementById('high-score-entry').style.display === 'block') {
+        const input = document.getElementById('player-name-input');
+        if (document.activeElement === input) {
+            submitHighScore();
+        }
     }
 });

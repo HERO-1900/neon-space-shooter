@@ -58,21 +58,94 @@
             color: #ff3366;
             background: rgba(255, 51, 102, 0.2);
         }
-        #game-over {
+        #game-over, #high-scores, #high-score-entry {
             position: absolute;
             top: 50%;
             left: 50%;
             transform: translate(-50%, -50%);
             text-align: center;
-            color: #ff3366;
             display: none;
         }
-        #game-over h2 {
+        #game-over h2, #high-scores h2, #high-score-entry h2 {
             font-size: 48px;
             margin-bottom: 20px;
             text-shadow: 0 0 20px #ff3366;
         }
-        #game-over button {
+        #high-scores h2 {
+            color: #ffcc00;
+            text-shadow: 0 0 20px #ffcc00;
+        }
+        #high-score-entry h2 {
+            color: #00ff88;
+            text-shadow: 0 0 20px #00ff88;
+        }
+        #game-over p, #high-score-entry p {
+            color: #00ff88;
+            font-size: 20px;
+            margin-bottom: 20px;
+        }
+        #high-score-entry .score-display {
+            color: #ffcc00;
+            font-size: 36px;
+            text-shadow: 0 0 10px #ffcc00;
+            margin: 20px 0;
+        }
+        #high-score-entry input {
+            background: rgba(0, 255, 136, 0.1);
+            border: 2px solid #00ff88;
+            color: #00ff88;
+            padding: 10px 15px;
+            font-size: 18px;
+            font-family: 'Courier New', monospace;
+            text-align: center;
+            width: 200px;
+            margin-bottom: 20px;
+            text-transform: uppercase;
+        }
+        #high-score-entry input:focus {
+            outline: none;
+            box-shadow: 0 0 15px rgba(0, 255, 136, 0.5);
+        }
+        .high-scores-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 20px 0;
+            font-size: 14px;
+        }
+        .high-scores-table th {
+            color: #ffcc00;
+            padding: 10px;
+            border-bottom: 2px solid #ffcc00;
+            text-shadow: 0 0 5px #ffcc00;
+        }
+        .high-scores-table td {
+            padding: 8px 10px;
+            color: #fff;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+        }
+        .high-scores-table tr.highlight td {
+            background: rgba(0, 255, 136, 0.2);
+            color: #00ff88;
+            font-weight: bold;
+            text-shadow: 0 0 5px #00ff88;
+        }
+        .high-scores-table .rank { color: #ffcc00; font-weight: bold; }
+        .high-scores-table .score { color: #00ffff; font-family: monospace; }
+        .high-scores-table .name { color: #ff3366; text-transform: uppercase; }
+        .high-scores-table .level { color: #9933ff; }
+        .high-scores-table .date { color: #888; font-size: 12px; }
+        .no-scores {
+            color: #888;
+            padding: 30px;
+            font-style: italic;
+        }
+        .button-group {
+            display: flex;
+            gap: 10px;
+            justify-content: center;
+            flex-wrap: wrap;
+        }
+        #game-over button, #high-scores button, #high-score-entry button, #start-screen button {
             padding: 15px 30px;
             font-size: 18px;
             background: #00ff88;
@@ -81,9 +154,21 @@
             cursor: pointer;
             font-family: 'Courier New', monospace;
             font-weight: bold;
+            margin: 5px;
+            transition: all 0.3s;
         }
-        #game-over button:hover {
+        #game-over button:hover, #high-scores button:hover, #high-score-entry button:hover, #start-screen button:hover {
             background: #00cc6a;
+            transform: scale(1.05);
+            box-shadow: 0 0 20px rgba(0, 255, 136, 0.5);
+        }
+        #high-scores button.secondary, #high-score-entry button.secondary {
+            background: #ff3366;
+            color: #fff;
+        }
+        #high-scores button.secondary:hover, #high-score-entry button.secondary:hover {
+            background: #cc2952;
+            box-shadow: 0 0 20px rgba(255, 51, 102, 0.5);
         }
         #start-screen {
             position: absolute;
@@ -102,16 +187,6 @@
             margin-bottom: 30px;
             font-size: 16px;
         }
-        #start-screen button {
-            padding: 15px 30px;
-            font-size: 18px;
-            background: #00ff88;
-            border: none;
-            color: #0a0a0a;
-            cursor: pointer;
-            font-family: 'Courier New', monospace;
-            font-weight: bold;
-        }
     </style>
 </head>
 <body>
@@ -121,17 +196,41 @@
             <div>SCORE: <span id="score">0</span></div>
             <div>LIVES: <span id="lives">3</span></div>
             <div>LEVEL: <span id="level">1</span></div>
+            <div style="margin-top: 10px; font-size: 12px; color: #ffcc00;">HIGH: <span id="high-score">0</span></div>
         </div>
         <button id="mute-btn" onclick="toggleAudio()">🔊 AUDIO ON</button>
         <div id="start-screen">
             <h1>NEON SPACE</h1>
             <p>Use ARROW KEYS to move • SPACE to shoot</p>
-            <button onclick="startGame()">START GAME</button>
+            <div class="button-group">
+                <button onclick="startGame()">START GAME</button>
+                <button class="secondary" onclick="showHighScores(); document.getElementById('start-screen').style.display='none';">🏆 HIGH SCORES</button>
+            </div>
         </div>
         <div id="game-over">
             <h2>GAME OVER</h2>
             <p>Final Score: <span id="final-score">0</span></p>
-            <button onclick="restartGame()">PLAY AGAIN</button>
+            <div class="button-group">
+                <button onclick="restartGame()">PLAY AGAIN</button>
+                <button class="secondary" onclick="showHighScores()">🏆 HIGH SCORES</button>
+            </div>
+        </div>
+        <div id="high-score-entry">
+            <h2>🎉 NEW HIGH SCORE!</h2>
+            <p>Enter your name:</p>
+            <div class="score-display" id="new-high-score">0</div>
+            <input type="text" id="player-name-input" maxlength="10" placeholder="PLAYER" value="PLAYER">
+            <div class="button-group">
+                <button onclick="submitHighScore()">SUBMIT</button>
+            </div>
+        </div>
+        <div id="high-scores">
+            <h2>🏆 HIGH SCORES</h2>
+            <div id="high-scores-list"></div>
+            <div class="button-group">
+                <button onclick="hideHighScores(); restartGame()">PLAY AGAIN</button>
+                <button class="secondary" onclick="hideHighScores(); document.getElementById('start-screen').style.display='block';">BACK TO MENU</button>
+            </div>
         </div>
     </div>
     <script src="audio.js"></script>

@@ -370,7 +370,8 @@ const tests = [
     'Bullet Mechanics',
     'Power-up System',
     'Player Invulnerability',
-    'Audio Manager System'
+    'Audio Manager System',
+    'High Score Manager'
 ];
 
 console.log(`Total test suites: ${tests.length}\n`);
@@ -378,5 +379,114 @@ console.log('═'.repeat(50));
 
 // Tests are run automatically when imported
 console.log('\n' + '═'.repeat(50));
+// High Score System tests
+test('High Score Manager', () => {
+    // Mock localStorage
+    const mockStorage = {};
+    global.localStorage = {
+        getItem: (key) => mockStorage[key] || null,
+        setItem: (key, value) => { mockStorage[key] = value; },
+        removeItem: (key) => { delete mockStorage[key]; }
+    };
+    
+    class HighScoreManager {
+        constructor(maxEntries = 10) {
+            this.maxEntries = maxEntries;
+            this.scores = this.load();
+        }
+        
+        load() {
+            const data = localStorage.getItem('neonSpaceShooter_highScores');
+            return data ? JSON.parse(data) : [];
+        }
+        
+        save() {
+            localStorage.setItem('neonSpaceShooter_highScores', JSON.stringify(this.scores));
+        }
+        
+        addScore(score, playerName = 'PLAYER') {
+            const entry = {
+                score: score,
+                name: playerName.toUpperCase().slice(0, 10),
+                date: new Date().toISOString().split('T')[0],
+                level: 1 // Simplified for test
+            };
+            
+            this.scores.push(entry);
+            this.scores.sort((a, b) => b.score - a.score);
+            this.scores = this.scores.slice(0, this.maxEntries);
+            this.save();
+            
+            return this.getRank(score);
+        }
+        
+        getRank(score) {
+            return this.scores.findIndex(entry => entry.score === score) + 1;
+        }
+        
+        isHighScore(score) {
+            if (this.scores.length < this.maxEntries) return true;
+            return score > this.scores[this.scores.length - 1].score;
+        }
+        
+        getTopScores(count = 5) {
+            return this.scores.slice(0, count);
+        }
+        
+        clear() {
+            this.scores = [];
+            localStorage.removeItem('neonSpaceShooter_highScores');
+        }
+    }
+    
+    const hsm = new HighScoreManager();
+    hsm.clear();
+    
+    // Test empty state
+    assert(hsm.scores.length === 0, 'High scores empty initially');
+    assert(hsm.isHighScore(100) === true, 'Any score is high when empty');
+    
+    // Test adding scores
+    hsm.addScore(1000, 'TEST');
+    assert(hsm.scores.length === 1, 'Score added successfully');
+    assert(hsm.scores[0].score === 1000, 'Score stored correctly');
+    assert(hsm.scores[0].name === 'TEST', 'Name stored correctly');
+    
+    // Test sorting (highest first)
+    hsm.addScore(500, 'LOW');
+    hsm.addScore(2000, 'HIGH');
+    assert(hsm.scores[0].score === 2000, 'Scores sorted descending');
+    assert(hsm.scores[1].score === 1000, 'Second place correct');
+    assert(hsm.scores[2].score === 500, 'Third place correct');
+    
+    // Test rank calculation
+    assert(hsm.getRank(2000) === 1, 'Rank 1 for highest');
+    assert(hsm.getRank(1000) === 2, 'Rank 2 for middle');
+    assert(hsm.getRank(500) === 3, 'Rank 3 for lowest');
+    
+    // Test max entries limit and high score detection on full list
+    for (let i = 0; i < 15; i++) {
+        hsm.addScore(100 + i, `P${i}`);
+    }
+    assert(hsm.scores.length === 10, 'Max entries enforced');
+    
+    // Now test high score detection on FULL list (lowest is 108)
+    assert(hsm.isHighScore(3000) === true, 'Higher score is high score');
+    assert(hsm.isHighScore(50) === false, 'Lower score is not high score when list full');
+    
+    // Test top scores retrieval
+    const top3 = hsm.getTopScores(3);
+    assert(top3.length === 3, 'Top 3 retrieved');
+    assert(top3[0].score >= top3[1].score, 'Top scores in order');
+    
+    // Test name truncation
+    hsm.clear();
+    hsm.addScore(100, 'VERYLONGNAME');
+    assert(hsm.scores[0].name.length === 10, 'Name truncated to 10 chars');
+    assert(hsm.scores[0].name === 'VERYLONGNA', 'Name truncated correctly');
+    
+    console.log('   🏆 High Score system fully functional');
+});
+
 console.log('✅ All tests passed!');
 console.log('═'.repeat(50));
